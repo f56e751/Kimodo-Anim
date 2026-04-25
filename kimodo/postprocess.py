@@ -57,7 +57,10 @@ def extract_input_motion_from_constraints(
     if not constraint_lst:
         return hip_translations_input, rotations_input
 
-    for constraint in constraint_lst:
+    # Sort constraints to ensure FullBodyConstraintSet is processed last
+    #   This ensures it will get the last say on whether hip translations need to be exact root or smoothed root
+    sorted_constraints = sorted(constraint_lst, key=lambda c: isinstance(c, FullBodyConstraintSet))
+    for constraint in sorted_constraints:
         frame_indices = constraint.frame_indices
         if isinstance(frame_indices, torch.Tensor):
             valid_mask = frame_indices < num_frames
@@ -94,9 +97,11 @@ def extract_input_motion_from_constraints(
                 smooth_root_2d = constraint.smooth_root_2d[valid_positions]
 
             root_positions = global_positions[:, skeleton.root_idx]  # (K, 3)
-            # Replace xz with smooth_root_2d values.
-            root_positions[:, 0] = smooth_root_2d[:, 0]  # x
-            root_positions[:, 2] = smooth_root_2d[:, 1]  # z
+            # replace xz with smooth_root_2d values for EE constraints that do not include Hips
+            #    since the hips themselves are not actually constrained in the model conditioning
+            if isinstance(constraint, EndEffectorConstraintSet) and "Hips" not in constraint.joint_names:
+                root_positions[:, 0] = smooth_root_2d[:, 0]  # x
+                root_positions[:, 2] = smooth_root_2d[:, 1]  # z
 
             local_rot_mats = skeleton.global_rots_to_local_rots(global_rots)  # (K, J, 3, 3)
             local_rot_quats = matrix_to_quaternion(local_rot_mats)  # (K, J, 4)
