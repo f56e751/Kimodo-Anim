@@ -16,7 +16,7 @@ The benchmark is constructed from motions in the BONES-SEED dataset and our rele
 The `testsuite` folder from the downloaded metadata contains the directory structure described in the [benchmark introduction](introduction.md) with `meta.json`, `seed_motion.json`, and `seed_constraints.json` metadata files in the leaf folders. These metadata files contain info about the text prompts, durations, and constraint definitions for each test case. The first two steps of the evaluation pipeline will create the following in the leaf folders to prepare for computing metrics:
 
 - **Ground-Truth Motion** (`gt_motion.npz`): produced by `create_benchmark.py` from SEED BVH + metadata.
-- **Constraints Configuration** (`constraints.json`): for test caases with constraint inputs, this file is created by `create_benchmark.py` from SEED BVH + metadata.
+- **Constraints Configuration** (`constraints.json`): for test cases with constraint inputs, this file is created by `create_benchmark.py` from SEED BVH + metadata.
 - **Generated Motion** (`motion.npz`): produced by the generation step from the model to evaluate (e.g. `generate_eval.py`).
 
 To perform the full evaluation, including metrics for both ground-truth and generated motions (steps 3--5), each leaf folder must contain both `gt_motion.npz` and `motion.npz`.

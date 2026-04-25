@@ -412,26 +412,6 @@ def create_gui(
                         initial_value=NB_TRANSITION_FRAMES,
                         visible=True,
                     )
-                    gui_share_transition_checkbox = client.gui.add_checkbox(  # noqa
-                        "Override previous frames",
-                        initial_value=False,
-                        visible=True,
-                    )
-                    gui_percentage_transition_sharing_slider = client.gui.add_slider(
-                        "Percentage overriding frames",
-                        min=0,
-                        max=30,
-                        step=1,
-                        initial_value=10,
-                        visible=True,
-                    )
-
-                    @gui_share_transition_checkbox.on_update
-                    def _(event: viser.GuiEvent) -> None:
-                        if get_active_session(event.client) is None:
-                            return
-                        # disable the slider if sharing transition is False
-                        gui_percentage_transition_sharing_slider.visible = gui_share_transition_checkbox.value
 
             with client.gui.add_folder("Post Processing", expand_by_default=False):
                 _model_name = model_name or ""
@@ -2014,6 +1994,16 @@ def create_gui(
                 )
                 return
 
+            # Long motions trigger a skinning precompute that can take several
+            # seconds; show a persistent "loading" notification so the user
+            # knows the app isn't frozen. Cleared in the finally block below.
+            loading_notif = event_client.add_notification(
+                title="Loading example...",
+                body=f"Loading {os.path.basename(example_path.rstrip(os.sep))}. This may take a moment for long motions.",
+                loading=True,
+                with_close_button=False,
+            )
+
             try:
                 # constraints
                 constraints_path = os.path.join(example_path, "constraints.json")
@@ -2104,6 +2094,8 @@ def create_gui(
                     auto_close_seconds=10.0,
                     color="red",
                 )
+            finally:
+                loading_notif.remove()
 
         @gui_load_example_button.on_click
         def _(event: viser.GuiEvent) -> None:
@@ -2847,8 +2839,6 @@ def create_gui(
 
             transitions_parameters = {
                 "num_transition_frames": gui_num_transition_frames_slider.value,
-                "share_transition": gui_share_transition_checkbox.value,
-                "percentage_transition_override": gui_percentage_transition_sharing_slider.value / 100,
             }
 
             # G1: postprocessing is disabled (does not work well for this model).

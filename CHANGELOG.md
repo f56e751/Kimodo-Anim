@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2026-04-24]
+
+### Added
+- Support for `TEXT_ENCODER_DEVICE` environment variable to force LLM2Vec to use the CPU instead of GPU. Setting `TEXT_ENCODER_DEVICE=cpu` reduces VRAM usage to <3 GB with a fairly small speed hit.
+- `--save_example_dir` argument to `kimodo_gen` to save outputs to an example directory that can be directly loaded into `kimodo_demo`
+
+### Fixed
+- Bug in post-processing that was incorrectly making the smoothed root the target for the root in full-body constraints
+- Modified how transitions are handled in multi-prompt generation to improve smoothness
+
+### Removed
+- `share_transition` and `percentage_transition_override` options from python API for multi-prompt generation
+
 ## [2026-04-13]
 
 ### Added

@@ -511,28 +511,34 @@ class Character:
         if self.g1_mesh_rig is not None:
             self.g1_mesh_rig.set_wireframe(wireframe)
 
-    def precompute_skinning(self, joints_pos: torch.Tensor, joints_rot: torch.Tensor, chunk_size: int = 512):
+    def precompute_skinning(self, joints_pos: torch.Tensor, joints_rot: torch.Tensor, chunk_size: int = 64):
         """Precompute skinning for all frames, processing in chunks to avoid OOM.
 
         joints_pos: [T, J, 3], joints_rot: [T, J, 3, 3].
+
+        The LBS gather intermediate is ~V*W*48 bytes per frame (V=18k, W=8 for SOMA
+        gives ~7 MB/frame), so a chunk of 64 peaks around ~1 GB -- safe alongside
+        a loaded text encoder + diffusion model on a typical 24 GB GPU.
         """
         assert self.skin is not None
         T = joints_pos.shape[0]
-        if T <= chunk_size:
-            self.skinned_verts_cache = self.skin.skin(joints_rot, joints_pos, rot_is_global=True).cpu().numpy()
-        else:
-            chunks = []
-            for start in range(0, T, chunk_size):
-                end = min(start + chunk_size, T)
-                verts = self.skin.skin(joints_rot[start:end], joints_pos[start:end], rot_is_global=True).cpu().numpy()
-                chunks.append(verts)
-            self.skinned_verts_cache = np.concatenate(chunks, axis=0)
+        with torch.no_grad():
+            if T <= chunk_size:
+                self.skinned_verts_cache = self.skin.skin(joints_rot, joints_pos, rot_is_global=True).cpu().numpy()
+            else:
+                chunks = []
+                for start in range(0, T, chunk_size):
+                    end = min(start + chunk_size, T)
+                    verts = self.skin.skin(joints_rot[start:end], joints_pos[start:end], rot_is_global=True).cpu().numpy()
+                    chunks.append(verts)
+                self.skinned_verts_cache = np.concatenate(chunks, axis=0)
 
     def update_skinning_cache(self, joints_pos: torch.Tensor, joints_rot: torch.Tensor, frame_idx: int):
         """Update skinning cache for one frame."""
         if self.skinned_verts_cache is None:
             return
-        new_skinned_verts = self.skin.skin(joints_rot[None], joints_pos[None], rot_is_global=True)[0].cpu().numpy()
+        with torch.no_grad():
+            new_skinned_verts = self.skin.skin(joints_rot[None], joints_pos[None], rot_is_global=True)[0].cpu().numpy()
         self.skinned_verts_cache[frame_idx] = new_skinned_verts
 
     def set_pose(
@@ -552,7 +558,8 @@ class Character:
                 assert frame_idx is not None
                 skinned_verts = self.skinned_verts_cache[frame_idx]
             else:
-                skinned_verts = self.skin.skin(joints_rot[None], joints_pos[None], rot_is_global=True)[0].cpu().numpy()
+                with torch.no_grad():
+                    skinned_verts = self.skin.skin(joints_rot[None], joints_pos[None], rot_is_global=True)[0].cpu().numpy()
             self.skinned_mesh.vertices = skinned_verts
         if self.g1_mesh_rig is not None:
             joints_pos_np = joints_pos.detach().cpu().numpy()

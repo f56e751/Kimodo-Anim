@@ -78,6 +78,7 @@ To see all available flags, run `kimodo_gen --help`. They are:
 - `--num_transition_frames`: Frames used to blend between prompts (default: `5`)
 - `--constraints`: Path to a JSON file containing constraints
 - `--output`: Output stem name (default: `output`). Used for all formats (NPZ, AMASS NPZ, CSV, BVH). With one sample, writes a single file per format (e.g. `test.npz`, `test.csv`). With multiple samples, creates a folder and writes `test_00.npz`, `test_01.npz`, … inside it. For SMPLX with one sample, AMASS is written to `stem_amass.npz` so it does not overwrite the main NPZ.
+- `--save_example_dir`: If given, saves outputs to an "example" directory structure that can be loaded in the Kimodo demo.
 - `--bvh`: Optional flag. When set, also export BVH (SOMA models only) using the same stem as `--output`.
 - `--bvh_standard_tpose`: If exporting BVH, export with the rest pose being the standard T-pose rather than the rest pose consistent with the BONES-SEED dataset.
 - `--seed`: Seed for reproducible results

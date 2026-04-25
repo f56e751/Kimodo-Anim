@@ -36,16 +36,23 @@ class LLM2VecEncoder:
             torch_dtype=torch_dtype,
             cache_dir=cache_dir,
         )
+
+        env_device = os.environ.get("TEXT_ENCODER_DEVICE")
+        if env_device:
+            device = env_device
+        if device == "auto":
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self._device = device
         if device is not None:
-            if device == "auto":
-                device = "cuda" if torch.cuda.is_available() else "cpu"
             self.model = self.model.to(device)
+
         self.model.eval()
         for p in self.model.parameters():
             p.requires_grad = False
 
     def to(self, device: torch.device):
         self.model = self.model.to(device)
+        self._device = str(device) if not isinstance(device, str) else device
         return self
 
     def eval(self):
@@ -71,6 +78,7 @@ class LLM2VecEncoder:
                 #            note: this is an internal batch size used by llm2vec - the text list can still be of arbitrary length.
                 batch_size=1,
                 show_progress_bar=False,
+                device=self._device,
             )
 
         assert len(encoded_text.shape)
@@ -83,5 +91,5 @@ class LLM2VecEncoder:
             encoded_text = encoded_text[0]
             lengths = lengths[0]
 
-        encoded_text = torch.tensor(encoded_text).to(self.get_device())
+        encoded_text = torch.tensor(encoded_text).to(self._device)
         return encoded_text, lengths
